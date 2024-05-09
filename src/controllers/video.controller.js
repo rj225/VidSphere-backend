@@ -1,4 +1,6 @@
 import { Video } from "../models/video.models.js";
+import {Like} from '../models/like.models.js'; // Adjust the path based on your project structure
+
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
 import  asyncHandler from "../utils/asyncHandler.js";
@@ -226,28 +228,29 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 
-const getVideoById=asyncHandler(async(req,res)=>{
+const getVideoById = asyncHandler(async (req, res) => {
     try {
-        const { videoId } = req.params
-        if(!videoId){
-            throw new apiError(400,"videoId cant be fetched from params")
+        const { videoId } = req.params;
+        if (!videoId) {
+            throw new apiError(400, "videoId cant be fetched from params");
         }
     
-        const video=await Video.findById(videoId)
-        if(!video){
-            throw new apiError(400,"Cant find video")
+        const video = await Video.findById(videoId);
+        if (!video) {
+            throw new apiError(400, "Cant find video");
         }
 
-        return(
-            res
-            .status(200)
-            .json(new apiResponse(200,video,"video fetched successfully"))
-        )
+        // Fetch the likes count for the video
+        const likesCount = await Like.countDocuments({ video: videoId });
+
+        // Include likes count in the response, similar to other controllers
+        return res.status(200).json(new apiResponse(200, { ...video.toObject(), likes: likesCount }, "Video fetched successfully"));
 
     } catch (error) {
-        throw new apiError(400,`Internal Error ${error}` )
+        throw new apiError(400, `Internal Error ${error}`);
     }
-})
+});
+
 
 
 const updateVideoDetails = asyncHandler(async (req, res) => {

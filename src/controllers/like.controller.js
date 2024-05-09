@@ -1,11 +1,11 @@
-import {Like} from "../models/like.model.js"
-import {apiError} from "../utils/apiError.js"
-import {apiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
-import { Video } from "../models/video.model.js"
-import {Tweet} from "../models/tweet.model.js"
-import { User } from "../models/user.model.js"
-import { Comment } from "../models/comment.model.js"
+import {Like} from "../models/like.models.js"
+import asyncHandler from "../utils/asyncHandler.js";
+import apiError from "../utils/apiError.js"
+import apiResponse from "../utils/apiResponse.js"
+import { Video } from "../models/video.models.js"
+import {Tweet} from "../models/tweet.models.js"
+import { User } from "../models/user.models.js"
+import { Comment } from "../models/comment.models.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params;

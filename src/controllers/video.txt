@@ -66,3 +66,26 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // Return the videos
     res.status(200).json(new apiResponse(200, videos, "Videos fetched successfully"));
 });
+
+// const getVideoById=asyncHandler(async(req,res)=>{
+//     try {
+//         const { videoId } = req.params
+//         if(!videoId){
+//             throw new apiError(400,"videoId cant be fetched from params")
+//         }
+    
+//         const video=await Video.findById(videoId)
+//         if(!video){
+//             throw new apiError(400,"Cant find video")
+//         }
+
+//         return(
+//             res
+//             .status(200)
+//             .json(new apiResponse(200,video,"video fetched successfully"))
+//         )
+
+//     } catch (error) {
+//         throw new apiError(400,`Internal Error ${error}` )
+//     }
+// })
