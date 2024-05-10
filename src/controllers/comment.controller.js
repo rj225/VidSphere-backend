@@ -1,14 +1,14 @@
 import mongoose from "mongoose"
-import {Comment} from "../models/comment.model.js"
-import {apiError} from "../utils/apiError.js"
-import {apiResponse} from "../utils/apiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
-import { Video } from "../models/video.model.js";
-import { User } from "../models/user.model.js"
+import {Comment} from "../models/comment.models.js"
+import apiError from "../utils/apiError.js"
+import apiResponse from "../utils/apiResponse.js"
+import asyncHandler from "../utils/asyncHandler.js"
+import { Video } from "../models/video.models.js";
+import { User } from "../models/user.models.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 5 } = req.query;
 
     // Check if videoId is a valid ObjectId
     if (!mongoose.isValidObjectId(videoId)) {
