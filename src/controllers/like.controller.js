@@ -144,10 +144,33 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         );
 });
 
+const getLikedComments = asyncHandler(async (req, res) => {
+    const user = await User.findOne({
+        refreshToken: req.cookies.refreshToken,
+    });
+    if (!user) {
+        throw new apiError(404, "User not found");
+    }
+
+    // Find all likes by the user
+    const likes = await Like.find({ likedBy: user._id, comment: { $exists: true } }).populate('comment');
+
+    if (!likes) {
+        return res.status(200).json(new apiResponse(200, [], "No liked comments found"));
+    }
+
+    // Extract comment details from the likes
+    const likedComments = likes.map(like => like.comment);
+
+    return res.status(200).json(new apiResponse(200, likedComments, "Liked comments fetched successfully"));
+});
+
+
 
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    getLikedComments
 }
