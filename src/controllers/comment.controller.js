@@ -8,7 +8,7 @@ import { User } from "../models/user.models.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const { page = 1, limit = 5 } = req.query;
+    const { page = 1, limit = 7 } = req.query;
 
     // Check if videoId is a valid ObjectId
     if (!mongoose.isValidObjectId(videoId)) {
