@@ -14,6 +14,7 @@ app.use(express.urlencoded({extended:true})) // it is used to accept url in form
 app.use(express.static("public"))
 app.use(cookieparser())
 
+import healthcheckrouter from './routes/healthcheck.routes.js'
 import userRouter from "./routes/user.routes.js";
 import videoRouter from './routes/video.routes.js'
 import likeRouter from './routes/like.routes.js'
@@ -23,6 +24,7 @@ import viewRouter from './routes/view.routes.js'
 import dashboardrouter from './routes/dashboard.routes.js'
 import playlistrouter from './routes/playlist.routes.js'
 
+app.use("/" , healthcheckrouter);
 app.use("/api/v1/user" , userRouter);
 app.use("/api/v1/video" , videoRouter);
 app.use("/api/v1/like" , likeRouter);
