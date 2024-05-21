@@ -1,12 +1,13 @@
 import { Video } from "../models/video.models.js";
 import {Like} from '../models/like.models.js'; // Adjust the path based on your project structure
-
+import { View } from "../models/view.models.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
 import  asyncHandler from "../utils/asyncHandler.js";
 import  uploadOnCloudinary from "../utils/cloudinary.js";
 import { User } from "../models/user.models.js";
 import mongoose from "mongoose";
+import { isValidObjectId } from 'mongoose';
 
 const publishVideo=asyncHandler(async(req,res)=>{
     /*
@@ -76,10 +77,21 @@ const publishVideo=asyncHandler(async(req,res)=>{
 
 
 const getUserVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType} = req.query;
+    const { page = 1, limit = 10, query, sortBy = 'createdAt', sortType = 'desc' } = req.query;
+    const { userId } = req.params; // Retrieve the user ID from req.params
 
+    // Check if the provided user ID is valid
+    if (!isValidObjectId(userId)) {
+        throw new apiError(400, 'Invalid user ID');
+    }
 
-    const matchQuery = {};
+    // Find the user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new apiError(404, 'User not found');
+    }
+
+    const matchQuery = { owner: user._id, isPublished: true };
     if (query && typeof query === 'string') {
         matchQuery.$or = [
             { title: { $regex: query, $options: 'i' } },
@@ -87,77 +99,54 @@ const getUserVideos = asyncHandler(async (req, res) => {
         ];
     }
 
-
-    const user = await User.findOne({
-        refreshToken: req.cookies.refreshToken,
-    });
-    
-
     const pageNumber = parseInt(page);
-    const limitOfComments = parseInt(limit);
+    const pageSize = parseInt(limit);
+    const skip = (pageNumber - 1) * pageSize;
 
-    if (!user) {
-        throw new apiError(400, "User is required.");
-    }
-
-    const skip = (pageNumber - 1) * limitOfComments;
-    const pageSize = limitOfComments;
-
-    const videos = await Video.aggregatePaginate(
-        Video.aggregate([
-            { 
-                $match: {
-                ...matchQuery, // Include the $or condition if query is provided and valid
-                isPublished: true,
-                owner:  user._id // Convert user._id to ObjectId
+    const videos = await Video.aggregate([
+        { $match: matchQuery },
+        {
+            $lookup: {
+                from: 'likes',
+                localField: '_id',
+                foreignField: 'video',
+                as: 'likes',
             }
-            },
-            {
-                $lookup: {
-                    from: "likes",
-                    localField: "_id",
-                    foreignField: "video",
-                    as: "likes",
-                }
-            },
-            {
-                $addFields: {
-                    likes: { $size: "$likes" }
-                }
-            },
-            {
-                $project: {
-                    "_id": 1,
-                    "videoFile": 1,
-                    "thumbnail": 1,
-                    "title": 1,
-                    "description": 1,
-                    "duration": 1,
-                    "views": 1,
-                    "isPublished": 1,
-                    "owner": 1,
-                    "createdAt": 1,
-                    "updatedAt": 1,
-                    "likes": 1
-                }
-            },
-            { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
-            { $skip: skip },
-            { $limit: pageSize }
-        ])
-    );
+        },
+        {
+            $addFields: {
+                likes: { $size: '$likes' }
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished: 1,
+                owner: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                likes: 1
+            }
+        },
+        { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
+        { $skip: skip },
+        { $limit: pageSize }
+    ]);
 
-    if (videos.length === 0) {
+    if (!videos || videos.length === 0) {
         return res.status(200).json(new apiResponse(200, "No videos available."));
     }
 
     // Return the videos
-    res.status(200).json({
-        videos: videos, // Include the videos data
-        message: "Videos fetched successfully"
-    });
-    
+    res.status(200).json(new apiResponse(200, videos, "Videos fetched successfully"));
 });
+
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType} = req.query;
@@ -197,6 +186,19 @@ const getAllVideos = asyncHandler(async (req, res) => {
                     likes: { $size: "$likes" }
                 }
             },
+            // {
+            //     $lookup: {
+            //         from: "views",
+            //         localField: "_id",
+            //         foreignField: "video",
+            //         as: "views",
+            //     }
+            // },
+            // {
+            //     $addFields: {
+            //         views: { $size: "$views" }
+            //     }
+            // },
             {
                 $project: {
                     "_id": 1,
@@ -242,6 +244,8 @@ const getVideoById = asyncHandler(async (req, res) => {
 
         // Fetch the likes count for the video
         const likesCount = await Like.countDocuments({ video: videoId });
+
+        // const totalViewsCount = await View.countDocuments({ video: videoId });
 
         // Include likes count in the response, similar to other controllers
         return res.status(200).json(new apiResponse(200, { ...video.toObject(), likes: likesCount }, "Video fetched successfully"));

@@ -19,11 +19,18 @@ import videoRouter from './routes/video.routes.js'
 import likeRouter from './routes/like.routes.js'
 import commentRouter from './routes/comment.routes.js'
 import suscriberRouter from './routes/subscription.routes.js'
+import viewRouter from './routes/view.routes.js'
+import dashboardrouter from './routes/dashboard.routes.js'
+import playlistrouter from './routes/playlist.routes.js'
 
 app.use("/api/v1/user" , userRouter);
 app.use("/api/v1/video" , videoRouter);
 app.use("/api/v1/like" , likeRouter);
 app.use("/api/v1/comment" , commentRouter);
 app.use("/api/v1/subscribe" , suscriberRouter)
+app.use("/api/v1/view" , viewRouter)
+app.use("/api/v1/dashboard" , dashboardrouter)
+app.use("/api/v1/playlist" , playlistrouter)
+
 
 export default app

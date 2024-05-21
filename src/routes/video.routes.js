@@ -20,10 +20,10 @@ router.route("/publish-video").post(verifyJWT,
     publishVideo
 )
 
-router.route("/get-user-videos").get(getUserVideos)
+router.route("/:userId/videos").get(getUserVideos) /// get video by user id
 router.route("/get-all-videos").get(getAllVideos)
 // router.route("/:videoId").get(verifyJWT,getVideoById)
-router.route("/:videoId").get(getVideoById)
+router.route("/:videoId").get(getVideoById)  // get video by video id
 router.route("/update-video/:videoId").patch(verifyJWT,upload.single("thumbnail"), updateVideoDetails)
 router.route("/delete-video/:videoId").delete(verifyJWT,deleteVideo)
 router.route("/toggle-publish-status/:videoId").patch(verifyJWT,togglePublishStatus)

@@ -1,10 +1,10 @@
-import { Playlist } from "../models/playlist.model.js";
+import { Playlist } from "../models/playlist.models.js";
 import { isValidObjectId } from "mongoose";
-import { User } from "../models/user.model.js";
-import { apiError } from "../utils/apiError.js";
-import { apiResponse } from "../utils/apiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { Video } from "../models/video.model.js";
+import { User } from "../models/user.models.js";
+import  apiError  from "../utils/apiError.js";
+import  apiResponse  from "../utils/apiResponse.js";
+import  asyncHandler  from "../utils/asyncHandler.js";
+import { Video } from "../models/video.models.js";
 
 const createPlaylist=asyncHandler(async(req,res)=>{
     /*
