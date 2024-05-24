@@ -6,7 +6,7 @@ const healthcheck = asyncHandler(async (req, res) => {
     return(
         res
         .status(200)
-        .json(new apiResponse(200,{},"OK status"))
+        .json(new apiResponse(200,{},"OK status after multer check"))
     )
 })
 
