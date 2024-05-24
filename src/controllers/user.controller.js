@@ -42,7 +42,7 @@ const registerUser = asyncHandler( async(req,res) => {
     // check for user creation
     // return res
 
-
+    try{
 
     const {fullname,email,username, password} = req.body  //req.body is given by express by default
     // console.log("email" , email);
@@ -102,6 +102,11 @@ const registerUser = asyncHandler( async(req,res) => {
     return res.status(201).json(
         new apiResponse(200 , createdUser ,"user registered Successfully" )
     )
+    }
+    catch (error) {
+        console.error("Error during registration:", error);
+        res.status(500).json({ message: "Internal Server at registration Error", error: error.message });
+      }
 
 })
 
