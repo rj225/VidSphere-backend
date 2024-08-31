@@ -56,48 +56,39 @@ const createPlaylist=asyncHandler(async(req,res)=>{
 
 
 const getUserPlaylists = asyncHandler(async (req, res) => {
-    const {userId} = req.params
-    if(!isValidObjectId(userId)){
-        throw new apiError(400,"Invalid userId")
+    const { userId } = req.params;
+    if (!isValidObjectId(userId)) {
+        throw new apiError(400, "Invalid userId");
     }
 
-    const user=await User.findById(req.user?._id)
-    if(!user){
-        throw new apiError(400,"Could not find user")
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+        throw new apiError(400, "Could not find user");
     }
 
-    const playlist=await Playlist.find(
-        {
-            owner:user._id
-        }
-    )
-    
-    return(
-        res
-        .status(200)
-        .json(new apiResponse(200,playlist,"Playlists fetched successfully"))
-    )
-})
+    // Find playlists by user and populate videos
+    const playlists = await Playlist.find({ owner: user._id }).populate('videos');
+
+    return res.status(200).json(new apiResponse(200, playlists, "Playlists fetched successfully by changing the id"));
+});
+
 
 
 const getPlaylistById = asyncHandler(async (req, res) => {
-    const {playlistId} = req.params
-    if (!isValidObjectId(playlistId)){
+    const { playlistId } = req.params;
+    if (!isValidObjectId(playlistId)) {
         throw new apiError(400, "Invalid playlist Id");
     }
 
-    const playlist=await Playlist.findById(playlistId)
-    if(!playlist){
-        throw new apiError(400,"Playlist Id cannot be fetched")
+    // Fetch playlist and populate videos
+    const playlist = await Playlist.findById(playlistId).populate('videos');
+    if (!playlist) {
+        throw new apiError(400, "Playlist Id cannot be fetched");
     }
 
-    return(
-        res
-        .status(200)
-        .json(new apiResponse(200,playlist,"Playlist fetched successfully"))
-    )
+    return res.status(200).json(new apiResponse(200, playlist, "Playlist fetched successfully by ID"));
+});
 
-})
 
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
