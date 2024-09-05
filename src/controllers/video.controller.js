@@ -186,6 +186,26 @@ const getAllVideos = asyncHandler(async (req, res) => {
                     likes: { $size: "$likes" }
                 }
             },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                _id: 1,
+                                fullname: 1,
+                                avatar: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $unwind: "$owner"
+            },
             // {
             //     $lookup: {
             //         from: "views",
