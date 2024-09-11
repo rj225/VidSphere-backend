@@ -77,7 +77,7 @@ const publishVideo=asyncHandler(async(req,res)=>{
 
 
 const getUserVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy = 'createdAt', sortType = 'desc' } = req.query;
+    const { page = 1, limit = 20, query, sortBy = 'createdAt', sortType = 'desc' } = req.query;
     const { userId } = req.params; // Retrieve the user ID from req.params
 
     // Check if the provided user ID is valid
@@ -149,7 +149,7 @@ const getUserVideos = asyncHandler(async (req, res) => {
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType} = req.query;
+    const { page = 1, limit = 12, query, sortBy, sortType} = req.query;
 
     const matchQuery = {};
     if (query && typeof query === 'string') {
