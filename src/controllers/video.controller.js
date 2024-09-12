@@ -238,7 +238,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
             { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
             { $skip: skip },
             { $limit: pageSize }
-        ])
+        ]),
+        {page: pageNumber,
+        limit: pageSize,}
     );
 
     if (videos.length === 0) {
