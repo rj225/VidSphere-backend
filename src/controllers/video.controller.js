@@ -149,8 +149,13 @@ const getUserVideos = asyncHandler(async (req, res) => {
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 12, query, sortBy, sortType} = req.query;
+    const { page = 1, limit: queryLimit = 12, query, sortBy = 'createdAt', sortType = 'asc' } = req.query;
 
+    const pageNumber = parseInt(page);
+    const limitOfComments = parseInt(queryLimit);  // Rename limit to avoid conflict
+    const skip = (pageNumber - 1) * limitOfComments;
+
+    // Build match query for searching
     const matchQuery = {};
     if (query && typeof query === 'string') {
         matchQuery.$or = [
@@ -159,114 +164,86 @@ const getAllVideos = asyncHandler(async (req, res) => {
         ];
     }
 
-    const pageNumber = parseInt(page);
-    const limitOfComments = parseInt(limit);
-
-    const skip = (pageNumber - 1) * limitOfComments;
-    const pageSize = limitOfComments;
-    const totalDocs = await Video.countDocuments(matchQuery);
-// console.log("Total Videos in Database:", totalDocs);
-
-
-    const videos = await Video.aggregatePaginate(
-        Video.aggregate([
-            { 
-                $match: {
-                    ...matchQuery,
-                    isPublished: true,
-                }
-            },
-            {
-                $lookup: {
-                    from: "likes",
-                    localField: "_id",
-                    foreignField: "video",
-                    as: "likes",
-                }
-            },
-            {
-                $addFields: {
-                    likes: { $size: "$likes" }
-                }
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "owner",
-                    pipeline: [
-                        {
-                            $project: {
-                                _id: 1,
-                                fullname: 1,
-                                avatar: 1
-                            }
+    // Aggregation pipeline
+    const aggregationPipeline = [
+        { 
+            $match: {
+                ...matchQuery,
+                isPublished: true,
+            }
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes",
+            }
+        },
+        {
+            $addFields: {
+                likes: { $size: "$likes" }
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            fullname: 1,
+                            avatar: 1
                         }
-                    ]
-                }
-            },
-            {
-                $unwind: "$owner"
-            },
-            // {
-            //     $lookup: {
-            //         from: "views",
-            //         localField: "_id",
-            //         foreignField: "video",
-            //         as: "views",
-            //     }
-            // },
-            // {
-            //     $addFields: {
-            //         views: { $size: "$views" }
-            //     }
-            // },
-            {
-                $project: {
-                    "_id": 1,
-                    "videoFile": 1,
-                    "thumbnail": 1,
-                    "title": 1,
-                    "description": 1,
-                    "duration": 1,
-                    "views": 1,
-                    "isPublished": 1,
-                    "owner": 1,
-                    "createdAt": 1,
-                    "updatedAt": 1,
-                    "likes": 1
-                }
-            },
-            { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
-            { $skip: skip },
-            { $limit: pageSize }
-        ]),
-    );
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: "$owner"
+        },
+        {
+            $project: {
+                "_id": 1,
+                "videoFile": 1,
+                "thumbnail": 1,
+                "title": 1,
+                "description": 1,
+                "duration": 1,
+                "views": 1,
+                "isPublished": 1,
+                "owner": 1,
+                "createdAt": 1,
+                "updatedAt": 1,
+                "likes": 1
+            }
+        },
+        { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
+        { $skip: skip },
+        { $limit: limitOfComments }
+    ];
 
-    const totalPages = Math.ceil(totalDocs / limitOfComments);
-    // console.log(to);
-    
+    // Use aggregatePaginate
+    const options = {
+        page: pageNumber,
+        limit: limitOfComments
+    };
+
+    const result = await Video.aggregatePaginate(aggregationPipeline, options);
+
+    const { docs: videos } = result;    
 
     if (videos.length === 0) {
         return res.status(200).json(new apiResponse(200, "No videos available."));
     }
 
-    // Return the videos
-    res.status(200).json(new apiResponse(200, {
-        videos,
-        totalDocs,
-        limit: limitOfComments,
-        page: pageNumber,
-        totalPages,
-        hasPrevPage: pageNumber > 1,
-        hasNextPage: pageNumber < totalPages,
-        prevPage: pageNumber > 1 ? pageNumber - 1 : null,
-        nextPage: pageNumber < totalPages ? pageNumber + 1 : null,
-    }, "Videos fetched successfully"));
-
-    // res.status(200).json(new apiResponse(200, videos, "Videos fetched successfully"));
+    res.status(200).json(new apiResponse(200, result, "Videos fetched successfully"));
 });
+
+
 
 
 const getVideoById = asyncHandler(async (req, res) => {
