@@ -165,24 +165,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
 
     // Aggregation pipeline
-    const aggregationPipeline = [
+    const aggregationPipeline =[
         { 
             $match: {
                 ...matchQuery,
-                isPublished: true,
-            }
-        },
-        {
-            $lookup: {
-                from: "likes",
-                localField: "_id",
-                foreignField: "video",
-                as: "likes",
-            }
-        },
-        {
-            $addFields: {
-                likes: { $size: "$likes" }
+                isPublished: true
             }
         },
         {
@@ -203,7 +190,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
             }
         },
         {
-            $unwind: "$owner"
+            $unwind: {
+                path: "$owner",
+                preserveNullAndEmptyArrays: true // Ensure owner is included even if not found
+            }
         },
         {
             $project: {
@@ -215,35 +205,39 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 "duration": 1,
                 "views": 1,
                 "isPublished": 1,
-                "owner": 1,
+                "owner": {
+                    _id: "$owner._id",
+                    fullname: "$owner.fullname",
+                    avatar: "$owner.avatar"
+                },
                 "createdAt": 1,
                 "updatedAt": 1,
-                "likes": 1
             }
         },
         { $sort: { [sortBy]: sortType === 'asc' ? 1 : -1 } },
-        { $skip: skip },
-        { $limit: limitOfComments }
     ];
 
-    // Use aggregatePaginate
-    const options = {
-        page: pageNumber,
-        limit: limitOfComments
-    };
+    try {
+        // Use aggregatePaginate
+        const options = {
+            page: pageNumber,
+            limit: limitOfComments
+        };
 
-    const result = await Video.aggregatePaginate(aggregationPipeline, options);
+        const result = await Video.aggregatePaginate(Video.aggregate(aggregationPipeline), options);
 
-    const { docs: videos } = result;    
+        const { docs: videos } = result;
 
-    if (videos.length === 0) {
-        return res.status(200).json(new apiResponse(200, "No videos available."));
+        if (videos.length === 0) {
+            return res.status(200).json(new apiResponse(200, "No videos available."));
+        }
+
+        res.status(200).json(new apiResponse(200, result, "Videos fetched successfully"));
+    } catch (error) {
+        console.error("Error fetching videos:", error);
+        res.status(500).json(new apiResponse(500, "An error occurred while fetching videos."));
     }
-
-    res.status(200).json(new apiResponse(200, result, "Videos fetched successfully"));
 });
-
-
 
 
 const getVideoById = asyncHandler(async (req, res) => {
