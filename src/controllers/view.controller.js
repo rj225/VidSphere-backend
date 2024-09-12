@@ -34,13 +34,13 @@ const increaseVideoView = asyncHandler(async (req, res) => {
         // Return success response
         return res.status(200).json(new apiResponse(200, {}, 'View counted successfully'));
     } else {
-        throw new apiError(400, 'You have already viewed this video or it has been less than 10 days since your last view.');
+        throw new apiError(400, 'You have already viewed this video or it has been less than 1 day since your last view.');
     }
 });
 
 // Helper function to check if it's been more than 10 days since the last view
 function isMoreThanTenDays(timestamp) {
-    const TEN_DAYS_IN_MS = 10 * 24 * 60 * 60 * 1000; // 10 days in milliseconds
+    const TEN_DAYS_IN_MS = 1 * 24 * 60 * 60 * 1000; // 10 days in milliseconds, now changing in 10 to 1
     const currentTime = Date.now();
     return currentTime - timestamp.getTime() > TEN_DAYS_IN_MS;
 }
