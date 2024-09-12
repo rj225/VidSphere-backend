@@ -164,6 +164,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     const skip = (pageNumber - 1) * limitOfComments;
     const pageSize = limitOfComments;
+    const totalDocs = await Video.countDocuments(matchQuery);
+// console.log("Total Videos in Database:", totalDocs);
+
 
     const videos = await Video.aggregatePaginate(
         Video.aggregate([
@@ -239,16 +242,30 @@ const getAllVideos = asyncHandler(async (req, res) => {
             { $skip: skip },
             { $limit: pageSize }
         ]),
-        {page: pageNumber,
-        limit: pageSize,}
     );
+
+    const totalPages = Math.ceil(totalDocs / limitOfComments);
+    // console.log(to);
+    
 
     if (videos.length === 0) {
         return res.status(200).json(new apiResponse(200, "No videos available."));
     }
 
     // Return the videos
-    res.status(200).json(new apiResponse(200, videos, "Videos fetched successfully"));
+    res.status(200).json(new apiResponse(200, {
+        videos,
+        totalDocs,
+        limit: limitOfComments,
+        page: pageNumber,
+        totalPages,
+        hasPrevPage: pageNumber > 1,
+        hasNextPage: pageNumber < totalPages,
+        prevPage: pageNumber > 1 ? pageNumber - 1 : null,
+        nextPage: pageNumber < totalPages ? pageNumber + 1 : null,
+    }, "Videos fetched successfully"));
+
+    // res.status(200).json(new apiResponse(200, videos, "Videos fetched successfully"));
 });
 
 
