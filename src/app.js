@@ -11,7 +11,7 @@ app.use(cors({
 
 app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({extended:true})) // it is used to accept url in form of rishabh+raj or rishabh%20raj
-app.use(express.static("public"))
+// app.use(express.static("public"))
 app.use(cookieparser())
 
 import healthcheckrouter from './routes/healthcheck.routes.js'
