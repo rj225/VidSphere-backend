@@ -1,79 +1,74 @@
 import { Video } from "../models/video.models.js";
-import {Like} from '../models/like.models.js'; // Adjust the path based on your project structure
+import { Like } from '../models/like.models.js'; // Adjust the path based on your project structure
 import { View } from "../models/view.models.js";
 import apiError from "../utils/apiError.js";
 import apiResponse from "../utils/apiResponse.js";
-import  asyncHandler from "../utils/asyncHandler.js";
-import  uploadOnCloudinary from "../utils/cloudinary.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import uploadOnCloudinary from "../utils/cloudinary.js";
 import { User } from "../models/user.models.js";
 import mongoose from "mongoose";
 import { isValidObjectId } from 'mongoose';
 
-const publishVideo=asyncHandler(async(req,res)=>{
+const publishVideo = asyncHandler(async (req, res) => {
     /*
-    1-get title and description
-    2-get video and thumbnail
-    3-upload on cloudinary
-    4-upload on mongo
-    5-return res
+    1. Get title and description
+    2. Get video and thumbnail
+    3. Upload on Cloudinary
+    4. Store in MongoDB
+    5. Return response
     */
 
-    //get title and des
-    const {title,description}=req.body //jwt to check if user is logged in or not
-    console.log(title);
+    console.log("Files received:", req.files);
 
+    // 1️⃣ Get title and description
+    const { title, description } = req.body;  
     if (!title) {
-        throw new apiError(400,"title for a video is req")
+        throw new apiError(400, "Title for the video is required");
     }
 
+    // 2️⃣ Ensure video and thumbnail exist
+    const videoBuffer = req.files?.videoFile?.[0]?.buffer;
+    if (!videoBuffer) {
+        throw new apiError(400, "No video found");
+    }
 
-    // get video and thumbnail
-    const videoLocalPath = req.files?.videoFile[0].path
-    if (!videoLocalPath) {
-        throw new apiError(400,"No video found")
+    const thumbnailBuffer = req.files?.thumbnail?.[0]?.buffer;
+    if (!thumbnailBuffer) {
+        throw new apiError(400, "No thumbnail found");
+    }
+
+    // 3️⃣ Upload files to Cloudinary
+    const videoUpload = await uploadOnCloudinary(videoBuffer, "videos", "video");
+    if (!videoUpload?.secure_url) {
+        throw new apiError(400, "Video not uploaded to Cloudinary");
     }
     
-    const thumbnailLocalPath = req.files?.thumbnail[0].path
-    if (!thumbnailLocalPath) {
-        throw new apiError(400,"No thumbnail found")
+    const thumbnailUpload = await uploadOnCloudinary(thumbnailBuffer, "thumbnails", "image");
+    if (!thumbnailUpload?.secure_url) {
+        throw new apiError(400, "Thumbnail not uploaded to Cloudinary");
     }
 
+    console.log("✅ Video and thumbnail uploaded to Cloudinary");
 
-    //upload on cloudinary
-    const videoFile=await uploadOnCloudinary(videoLocalPath)
-    if (!videoFile) {
-        throw new apiError(400,"video not uploaded on cloudinary")
+    // 4️⃣ Get user details
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+        throw new apiError(404, "User not found");
     }
 
-    const thumbnail=await uploadOnCloudinary(thumbnailLocalPath)
-    if (!thumbnail) {
-        throw new apiError(400,"thumbnail not uploaded on cloudinary")
-    }
+    // 5️⃣ Store video details in MongoDB
+    const video = await Video.create({
+        videoFile: videoUpload.secure_url,  // ✅ Corrected field
+        thumbnail: thumbnailUpload.secure_url,  // ✅ Corrected field
+        owner: user._id,
+        title,
+        description: description || "",
+        duration: videoUpload.duration || 0,  // ✅ Ensure duration is handled
+    });
 
-    console.log("Video and thumbnail uploaded on cloudinary");
-
-    //getting the user
-    const user=await User.findById(req.user?._id)
-
-    //store the data on mongo 
-    const video=await Video.create({
-        videoFile:videoFile.secure_url,
-        thumbnail:thumbnail.url,
-        owner:user._id,
-        title:title,
-        description:description || "",
-        duration:videoFile.duration
-
-    })
-
-    //return the res
-    return (
-        res
-        .status(200)
-        .json(new apiResponse(200,video, "Video uploaded successfully"))
-    )
-
-})
+    // 6️⃣ Return response
+    return res.status(200).json(new apiResponse(200, video, "Video uploaded successfully"));
+});
 
 
 const getUserVideos = asyncHandler(async (req, res) => {
@@ -165,8 +160,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
     }
 
     // Aggregation pipeline
-    const aggregationPipeline =[
-        { 
+    const aggregationPipeline = [
+        {
             $match: {
                 ...matchQuery,
                 isPublished: true
@@ -246,7 +241,7 @@ const getVideoById = asyncHandler(async (req, res) => {
         if (!videoId) {
             throw new apiError(400, "videoId cant be fetched from params");
         }
-    
+
         const video = await Video.findById(videoId);
         if (!video) {
             throw new apiError(400, "Cant find video");
@@ -309,18 +304,17 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
     }
 
     // Update thumbnail
-    if (req.file !== undefined) {
+    if (req.file) {
         const newThumbnailLocalFilePath = req.file.path;
         if (!newThumbnailLocalFilePath) {
-            throw new apiError(400, "Thumbnail is not uploaded")
+            throw new apiError(400, "Thumbnail is not uploaded");
         }
-        const thumbnail = await uploadOnCloudinary(newThumbnailLocalFilePath)
+        const thumbnail = await uploadOnCloudinary(newThumbnailLocalFilePath);
         if (!thumbnail) {
-            throw new apiError(500, "Failed to upload thumbnail to Cloudinary")
+            throw new apiError(500, "Failed to upload thumbnail to Cloudinary");
         }
         video.thumbnail = thumbnail.url;
-        thumbnailUpdated = true;
-    }
+    }    
 
     // Save the changes
     await video.save();
@@ -335,10 +329,10 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    if(!videoId){
-        throw new apiError(400,"videoId cant be fetched from params")
+    if (!videoId) {
+        throw new apiError(400, "videoId cant be fetched from params")
     }
-    
+
     const video = await Video.findById(videoId)
     const user = await User.findOne({
         refreshToken: req.cookies.refreshToken,
@@ -351,23 +345,23 @@ const deleteVideo = asyncHandler(async (req, res) => {
     //only the owner can delete the video
     if (video?.owner.equals(user._id.toString())) {
         await Video.findByIdAndDelete(videoId)
-        return(
+        return (
             res
-            .status(200)
-            .json(new apiResponse(200,{},"Video deleted successfully"))
+                .status(200)
+                .json(new apiResponse(200, {}, "Video deleted successfully"))
         )
-    }else{
-        throw new apiError(401,"Only user can delete the video")
+    } else {
+        throw new apiError(401, "Only user can delete the video")
     }
 
-    
+
 })
 
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    if(!videoId){
-        throw new apiError(400,"videoId cant be fetched from params")
+    if (!videoId) {
+        throw new apiError(400, "videoId cant be fetched from params")
     }
 
     const video = await Video.findById(videoId);
@@ -378,15 +372,15 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     await video.save({ validateBeforeSave: false })
 
-    return(
+    return (
         res
-        .status(200)
-        .json(new apiResponse(200,video.isPublished,"Video publish toggled successfully"))
+            .status(200)
+            .json(new apiResponse(200, video.isPublished, "Video publish toggled successfully"))
     )
 })
 
 
-export{
+export {
     publishVideo,
     getUserVideos,
     getAllVideos,

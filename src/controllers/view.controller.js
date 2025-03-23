@@ -34,7 +34,8 @@ const increaseVideoView = asyncHandler(async (req, res) => {
         // Return success response
         return res.status(200).json(new apiResponse(200, {}, 'View counted successfully'));
     } else {
-        throw new apiError(400, 'You have already viewed this video or it has been less than 1 day since your last view.');
+        // throw new apiError(401, 'You have already viewed this video or it has been less than 1 day since your last view.');
+        res.status(200).json(null)
     }
 });
 
